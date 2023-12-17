@@ -1,0 +1,117 @@
+---
+- name: Send SMS, Email, and WhatsApp Message
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Install Twilio Python Library for SMS
+      pip:
+        name: twilio
+        executable: pip3
+        state: present
+
+    - name: Create Python Script for SMS
+      copy:
+        content: |
+          from twilio.rest import Client
+
+          account_sid = 'AC*****9'
+          auth_token = '66*******a43'
+          client = Client(account_sid, auth_token)
+
+          message = client.messages.create(
+            from_='+12******10',
+            to='+917******240',
+            body='This is a test SMS message.'  # Customize your message here
+          )
+
+          print(message.sid)
+        dest: /tmp/send_sms.py
+        mode: '0755'
+
+    - name: Run Python Script for SMS
+      command: "/usr/bin/python3 /tmp/send_sms.py"
+      register: sms_script_result
+      args:
+        executable: /usr/bin/python3
+
+    - name: Display SMS Script Result
+      debug:
+        var: sms_script_result.stdout_lines
+
+    - name: Install required Python packages for SendGrid
+      pip:
+        name:
+          - sendgrid
+          - python_http_client
+        state: present
+
+    - name: Run Python script to send email
+      command: "python3 /root/send_email.py"
+      args:
+        executable: /usr/bin/python3
+
+    - name: Install Twilio Python Library for WhatsApp
+      pip:
+        name: twilio
+        state: present
+
+    - name: Create Python Script for WhatsApp
+      copy:
+        content: |
+          from twilio.rest import Client
+
+          account_sid = 'AC2488*************e9c9'
+          auth_token = '66**************43'
+          client = Client(account_sid, auth_token)
+
+          message = client.messages.create(
+            from_='whatsapp:+14**********86',
+            body='Your appointment is coming up on July 21 at 3PM',
+            to='whatsapp:+91*********240'
+          )
+
+          print(message.sid)
+        dest: /tmp/send_whatsapp.py
+        mode: '0755'
+
+    - name: Run Python Script for WhatsApp
+      command: "/usr/bin/python3 /tmp/send_whatsapp.py"
+      register: whatsapp_script_result
+
+    - name: Display WhatsApp Script Result
+      debug:
+        var: whatsapp_script_result.stdout_lines
+
+
+# save this as send_email.py file to send email ansible play book will come to this file
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# send_email.py
+
+from email.message import EmailMessage
+import smtplib
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
+def send_email():
+    sg_api_key = "SG.***********w"
+    sender_email = "pp************@gmail.com"
+    recipient_email = "pt*******8@gmail.com"
+    subject = "Test Email from Ansible using SendGrid"
+    body = "This is a test email sent using Ansible and SendGrid."
+
+    message = Mail(
+        from_email=sender_email,
+        to_emails=recipient_email,
+        subject=subject,
+        plain_text_content=body
+    )
+
+    try:
+        sg = SendGridAPIClient(sg_api_key)
+        response = sg.send(message)
+        print("Email sent successfully!")
+    except Exception as e:
+        print(f"Failed to send email. Error: {e}")
+
+if __name__ == "__main__":
+    send_email()
